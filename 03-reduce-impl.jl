@@ -1,10 +1,8 @@
 using Printf
 using GPUArrays
 using CuArrays
-using CUDAdrv
 using MPI
 
-include("MPICUDA.jl")
 
 function do_reduce()
     comm = MPI.COMM_WORLD
@@ -12,18 +10,20 @@ function do_reduce()
     MPI.Barrier(comm)
 
     root = 0
-    r = MPI.Comm_rank(comm)
+    rank = MPI.Comm_rank(comm)
 
-    N = 100
+    N = 9
 
-    A = CuArrays.CuArray{Float64}(10, 10)
-    copyto!(A, r * reshape(collect(1:N)*1.0, (10, 10)))
+    A = CuArray{Float64}(undef,3, 3)
+    @sync copyto!(A, rank * reshape(collect(1:N)*1.0, (3, 3)))
+    # CUDA streams should be synchronized before MPI call.
+
+    B = CuArray{Float64}(undef, 3, 3)
     
-    
 
-    sr = Reduce(A, MPI.SUM, root, comm) 
+    sr = MPI.Reduce!(A, B, MPI.SUM, root, comm) 
 
     if(MPI.Comm_rank(comm) == root)
-        @printf("sum: %s\n", sr)
+        println("sum: $B")
     end
 end

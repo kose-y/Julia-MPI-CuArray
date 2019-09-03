@@ -1,6 +1,5 @@
 using MPI
 using CuArrays
-include("MPICUDA.jl")
 function do_sendrecv()
 
     comm = MPI.COMM_WORLD
@@ -15,15 +14,16 @@ function do_sendrecv()
 
     N = 4
 
-    send_mesg = CuArrays.CuArray{Float64}(N)
-    recv_mesg = CuArrays.CuArray{Float64}(N)
+    send_mesg = CuArrays.CuArray{Float64}(undef, N)
+    recv_mesg = CuArrays.CuArray{Float64}(undef, N)
 
-    fill!(send_mesg, Float64(rank))
+    @sync fill!(send_mesg, Float64(rank))
+    # CUDA streams should be synchronized before calling MPI.
 
-    rreq = Irecv!(recv_mesg, src,  src+32, comm)
+    rreq = MPI.Irecv!(recv_mesg, src,  src+32, comm)
 
     println("$rank: Sending   $rank -> $dst = $send_mesg")
-    sreq = Isend(send_mesg, dst, rank+32, comm)
+    sreq = MPI.Isend(send_mesg, dst, rank+32, comm)
 
     stats = MPI.Waitall!([rreq, sreq])
 

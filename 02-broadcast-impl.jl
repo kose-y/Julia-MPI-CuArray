@@ -1,10 +1,9 @@
 using Printf
-using GPUArrays
 using CuArrays
-using CUDAdrv
+using CuArrays.CUDAdrv
 using MPI
+using GPUArrays
 
-include("MPICUDA.jl")
 function do_broadcast()
     comm = MPI.COMM_WORLD
 
@@ -16,22 +15,21 @@ function do_broadcast()
 
     MPI.Barrier(comm)
 
-    N = 100
+    N = 9
     
     root = 0
     
-    A = CuArrays.CuArray{Float64}(10, 10)
+    A = CuArrays.CuArray{Float64}(undef, 3, 3)
     if MPI.Comm_rank(comm) == root
-        copyto!(A, reshape(collect(1:N)*1.0,  (10, 10)))
+        @sync copyto!(A, reshape(collect(1:N)*1.0,  (3, 3)))
+        # CUDA streams should be synchronized before calling MPI functions, 
+        # implicitly or explicitly.
     end
     
-    println(GPUArrays.device(A))
 
-    Bcast!(A, root, comm)
+    MPI.Bcast!(A, root, comm)
     
 
-    @printf("[%02d] A:%s\n", MPI.Comm_rank(comm), A)
-    #map(println, CUDAdrv.devices())
-
+    @printf("[%02d] A:%s, device:%s\n", MPI.Comm_rank(comm), A, GPUArrays.device(A))
 
 end
