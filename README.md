@@ -8,5 +8,3 @@ For example, you can use the command
 mpirun -np 4 02-broadcast.jl
 ```
 to run 02-broadcast.jl with 4 processes (across multiple nodes or CUDA devices if available).
-
-MPICuArrays.jl
